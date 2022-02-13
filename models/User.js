@@ -1,7 +1,7 @@
 
 const {Schema,model} = require('mongoose');
 const {isEmail,isStrongPassword} = require('validator');
-const {genSalt,hash} = require('bcrypt');
+const {genSalt,hash,compare} = require('bcrypt');
 const user_schema = new Schema({
     
     username:{
@@ -26,11 +26,23 @@ const user_schema = new Schema({
 user_schema.pre('save',async function(next){
     const salt = await genSalt();
     this.password = await hash(this.password,salt);
-    console.log('====================================');
-    console.log(this);
-    console.log('====================================');
-    next()
+    next();
 })
+
+user_schema.statics.findByEmail = async function(email,password){
+    const user = await this.findOne({email})
+    if (user) {
+        const auth = await compare(password,user.password);
+        console.log('====================================');
+        console.log(auth);
+        console.log('====================================');
+        if (auth) {
+            return user;
+        }
+        throw Error('wrong password');
+    }
+    throw Error('user not exists');
+}
 
 const user_model = model('user',user_schema)
 
